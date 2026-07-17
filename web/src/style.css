@@ -446,7 +446,10 @@ button:focus-visible {
 
 /* Node inspector */
 
-.inspector-backdrop {
+/* :not([hidden]) - matches [hidden]'s specificity, so plain .inspector-backdrop
+   would win the display:flex/display:none tie by source order and the panel
+   would stay click-through even while hidden="true". */
+.inspector-backdrop:not([hidden]) {
   position: fixed;
   inset: 0;
   z-index: 20;
