@@ -8,7 +8,7 @@ const ENGINES: Engine[] = ["postgres", "mysql", "sqlite"];
 export function renderApp(root: HTMLElement): void {
   root.innerHTML = `
     <header class="site-header">
-      <span class="wordmark">Plan<em>scope</em></span>
+      <span class="wordmark" id="wordmark">Plan<em>scope</em></span>
       <p class="tagline">Paste an EXPLAIN plan. See the tree, and the node that's slow.</p>
     </header>
     <main class="workspace">
@@ -49,6 +49,13 @@ export function renderApp(root: HTMLElement): void {
   const errorEl = root.querySelector<HTMLElement>("#input-error")!;
   const collapseToggle = root.querySelector<HTMLButtonElement>("#toggle-input")!;
   const railBody = root.querySelector<HTMLElement>("#input-rail-body")!;
+  const wordmark = root.querySelector<HTMLElement>("#wordmark")!;
+
+  function sweepWordmark(): void {
+    wordmark.classList.remove("swept");
+    void wordmark.offsetWidth; // force reflow so the transition replays on repeat parses
+    wordmark.classList.add("swept");
+  }
 
   function setRailCollapsed(collapsed: boolean): void {
     collapseToggle.setAttribute("aria-expanded", String(!collapsed));
@@ -97,6 +104,7 @@ export function renderApp(root: HTMLElement): void {
         output.innerHTML = "";
         output.appendChild(renderTree(plan));
         setRailCollapsed(true);
+        sweepWordmark();
       })
       .catch((cause: unknown) => {
         const message = cause instanceof Error ? cause.message : String(cause);
