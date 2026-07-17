@@ -12,6 +12,7 @@ web/src/wasm/
 web/node_modules/
 web/dist/
 web/.vite/
+web/coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
