@@ -89,3 +89,42 @@ export function findHottestNodePath(root: PlanNode): NodePath | undefined {
   walk(root, []);
   return hottestPath;
 }
+
+/** One row in the node inspector panel: a human label and a display-ready value. */
+export interface NodeField {
+  label: string;
+  value: string;
+}
+
+/**
+ * Every non-null field on a node, including ones the tree row doesn't show
+ * inline (e.g. estimated_cost_start) - the click-to-inspect panel's content.
+ * Deliberately excludes `children`: dumping a subtree isn't a "field".
+ */
+export function describeNodeFields(node: PlanNode): NodeField[] {
+  const fields: NodeField[] = [{ label: "Node type", value: node.node_type }];
+  if (node.relation !== undefined) fields.push({ label: "Relation", value: node.relation });
+  if (node.estimated_cost_start !== undefined) {
+    fields.push({ label: "Estimated cost (start)", value: node.estimated_cost_start.toString() });
+  }
+  if (node.estimated_cost_total !== undefined) {
+    fields.push({ label: "Estimated cost (total)", value: node.estimated_cost_total.toString() });
+  }
+  if (node.estimated_rows !== undefined) {
+    fields.push({ label: "Estimated rows", value: node.estimated_rows.toLocaleString() });
+  }
+  if (node.actual_time_start_ms !== undefined) {
+    fields.push({ label: "Actual time (start)", value: `${node.actual_time_start_ms} ms` });
+  }
+  if (node.actual_time_total_ms !== undefined) {
+    fields.push({ label: "Actual time (total)", value: `${node.actual_time_total_ms} ms` });
+  }
+  if (node.actual_rows !== undefined) {
+    fields.push({ label: "Actual rows", value: node.actual_rows.toLocaleString() });
+  }
+  if (node.actual_loops !== undefined) {
+    fields.push({ label: "Actual loops", value: node.actual_loops.toString() });
+  }
+  fields.push({ label: "Children", value: node.children.length.toString() });
+  return fields;
+}
