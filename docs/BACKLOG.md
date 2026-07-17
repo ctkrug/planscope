@@ -53,23 +53,23 @@ checks, not vibes. Story 1 is the wow moment: it ships before anything optional.
 
 ## Epic 3 — Interactive tree UX
 
-- [ ] **8. Click-to-inspect raw node fields**
+- [x] **8. Click-to-inspect raw node fields**
   - Clicking a tree node opens a panel listing every non-null field on that `PlanNode`, including
     ones not shown inline (e.g. `estimated_cost_start`).
   - Escape or click-away closes the inspector and returns focus to the node that opened it.
 
-- [ ] **9. "Jump to hottest node" control**
+- [x] **9. "Jump to hottest node" control**
   - A single control scrolls to and expands the path to the node with the highest self-time,
     auto-expanding any collapsed ancestors along the way.
   - Verified correct when the hottest node is nested 3+ levels deep with collapsed ancestors.
 
-- [ ] **10. Persist the last-pasted plan in `localStorage`**
+- [x] **10. Persist the last-pasted plan in `localStorage`**
   - Reloading the page restores the last successfully parsed plan (engine, raw text, tree
     expand/collapse state) with no network round-trip.
   - An explicit "Clear" action removes the stored plan; reloading after Clear does not resurrect
     the old tree.
 
-- [ ] **11. Sample plans for each engine ("Try an example")**
+- [x] **11. Sample plans for each engine ("Try an example")**
   - A "Try an example" control per engine loads a canned, realistic EXPLAIN dump and immediately
     visualizes it, so the tool is demonstrable without a live database.
   - All three engines (Postgres, MySQL, SQLite) have at least one working example.
