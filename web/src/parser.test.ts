@@ -34,6 +34,19 @@ describe("parsePlan", () => {
     expect(() => parsePlan("postgres", "")).toThrow(Error);
   });
 
+  it("stringifies a non-string thrown value instead of losing it", async () => {
+    const { parsePlan } = await import("./parser");
+    parse_plan.mockImplementation(() => {
+      // The wasm boundary is documented to throw bare strings, but nothing
+      // in the type system enforces that - a future wasm-bindgen version
+      // (or a browser runtime error) could throw something else.
+      throw { code: "OOM" };
+    });
+
+    expect(() => parsePlan("postgres", "")).toThrow(Error);
+    expect(() => parsePlan("postgres", "")).toThrow("[object Object]");
+  });
+
   it("ensureParserReady only initializes the wasm module once", async () => {
     const { ensureParserReady } = await import("./parser");
 
