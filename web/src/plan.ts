@@ -59,3 +59,33 @@ export function isRowEstimateMismatch(node: PlanNode): boolean {
   const ratio = actual / estimated;
   return ratio >= 10 || ratio <= 0.1;
 }
+
+/** A node's position in the tree as a sequence of child indices from the root. */
+export type NodePath = number[];
+
+/** Encodes a NodePath as the string key tree-view/storage use to address a node. */
+export function pathKey(path: NodePath): string {
+  return path.join(".");
+}
+
+/**
+ * Finds the path to the node with the highest self-time in the tree, for the
+ * "jump to hottest node" control. Mirrors findHottestNode's tie-breaking
+ * (first node seen wins) but returns a path so ancestors can be re-expanded.
+ */
+export function findHottestNodePath(root: PlanNode): NodePath | undefined {
+  let hottestPath: NodePath | undefined;
+  let hottestSelfTime = -Infinity;
+
+  function walk(node: PlanNode, path: NodePath): void {
+    const time = selfTimeMs(node);
+    if (time !== undefined && time > hottestSelfTime) {
+      hottestSelfTime = time;
+      hottestPath = path;
+    }
+    node.children.forEach((child, index) => walk(child, [...path, index]));
+  }
+
+  walk(root, []);
+  return hottestPath;
+}
