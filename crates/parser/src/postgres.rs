@@ -150,4 +150,35 @@ Hash Join  (cost=1.11..2.22 rows=10 width=8) (actual time=0.50..1.20 rows=10 loo
         assert_eq!(plan.children[1].children.len(), 1);
         assert_eq!(plan.children[1].children[0].relation.as_deref(), Some("b"));
     }
+
+    #[test]
+    fn rejects_empty_and_whitespace_only_input() {
+        assert!(parse("").is_err());
+        assert!(parse("   \n\t  \n   ").is_err());
+    }
+
+    #[test]
+    fn handles_a_unicode_relation_name_without_panicking() {
+        let plan = parse(
+            "Seq Scan on \u{8868}\u{30C6}\u{30FC}\u{30D6}\u{30EB}\u{1F600}  (cost=0.00..1.00 rows=1 width=4)",
+        )
+        .unwrap();
+        assert_eq!(plan.node_type, "Seq Scan");
+        assert_eq!(
+            plan.relation.as_deref(),
+            Some("\u{8868}\u{30C6}\u{30FC}\u{30D6}\u{30EB}\u{1F600}")
+        );
+    }
+
+    #[test]
+    fn drops_unparseable_numeric_fields_instead_of_erroring() {
+        // A rows value that doesn't fit its target type (negative - Postgres
+        // itself never emits this, but nothing stops a hand-edited paste)
+        // shouldn't fail the whole parse - the field is simply absent, same
+        // as a plan without ANALYZE data.
+        let plan = parse("Seq Scan on t  (cost=0.00..1.00 rows=-5 width=4)").unwrap();
+        assert_eq!(plan.estimated_cost_start, Some(0.0));
+        assert_eq!(plan.estimated_cost_total, Some(1.0));
+        assert_eq!(plan.estimated_rows, None);
+    }
 }
