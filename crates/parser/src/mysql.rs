@@ -114,4 +114,25 @@ mod tests {
     fn rejects_invalid_json() {
         assert!(parse("not json").is_err());
     }
+
+    #[test]
+    fn rejects_valid_json_missing_query_block() {
+        assert!(parse(r#"{"select_id": 1}"#).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_input() {
+        assert!(parse("").is_err());
+        assert!(parse("   \n\t  ").is_err());
+    }
+
+    #[test]
+    fn falls_back_to_unknown_for_an_unrecognized_query_block_shape() {
+        // A query_block that's valid JSON but doesn't match any known key
+        // (table / nested_loop / grouping_operation / ...) shouldn't panic
+        // or silently pick a wrong node - it should surface as "Unknown"
+        // rather than as a specific, misleading node type.
+        let plan = parse(r#"{"query_block": {"select_id": 1}}"#).unwrap();
+        assert_eq!(plan.node_type, "Unknown");
+    }
 }
