@@ -1,5 +1,6 @@
 import "./style.css";
 import { engineLabel, isEngine, type Engine } from "./engine";
+import { EXAMPLE_PLANS } from "./examples";
 import { ensureParserReady, parsePlan } from "./parser";
 import { renderTree, type TreeController } from "./tree-view";
 import { createInspector } from "./inspector";
@@ -34,6 +35,13 @@ export function renderApp(root: HTMLElement): void {
           ></textarea>
           <button id="visualize-btn" type="button">Visualize</button>
           <p id="input-error" class="input-error" role="alert" hidden></p>
+          <div class="example-row" role="group" aria-label="Try an example plan">
+            <span class="example-label">Try an example</span>
+            ${ENGINES.map(
+              (e) =>
+                `<button type="button" class="ghost-btn example-btn" data-engine="${e}">${engineLabel(e)}</button>`,
+            ).join("")}
+          </div>
         </div>
       </aside>
       <section class="output-panel" aria-label="Cost tree">
@@ -143,6 +151,17 @@ export function renderApp(root: HTMLElement): void {
     const engine = select.value;
     if (!isEngine(engine)) return;
     visualize(engine, input.value);
+  });
+
+  root.querySelectorAll<HTMLButtonElement>(".example-btn").forEach((exampleButton) => {
+    exampleButton.addEventListener("click", () => {
+      const engine = exampleButton.dataset.engine;
+      if (!engine || !isEngine(engine)) return;
+      const text = EXAMPLE_PLANS[engine];
+      select.value = engine;
+      input.value = text;
+      visualize(engine, text);
+    });
   });
 }
 
