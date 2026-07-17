@@ -36,6 +36,7 @@ describe("renderApp", () => {
   beforeEach(() => {
     ensureParserReady.mockClear();
     parsePlan.mockReset();
+    localStorage.clear();
   });
 
   it("shows an inline error and never calls the parser when the input is empty", async () => {
@@ -191,5 +192,65 @@ describe("renderApp", () => {
       (b) => b.dataset.engine,
     );
     expect(engines.sort()).toEqual(["mysql", "postgres", "sqlite"]);
+  });
+
+  it("restores the last-saved plan when the app mounts", async () => {
+    localStorage.setItem(
+      "planscope:last-plan",
+      JSON.stringify({ engine: "sqlite", text: "1|0|0|SCAN t", collapsedPaths: [] }),
+    );
+    parsePlan.mockReturnValue({ node_type: "SCAN", relation: "t", children: [] });
+
+    const { renderApp } = await import("./main");
+    document.body.innerHTML = '<div id="app"></div>';
+    const root = document.getElementById("app")!;
+    renderApp(root);
+    await flush();
+
+    expect(root.querySelector<HTMLSelectElement>("#engine-select")!.value).toBe("sqlite");
+    expect(root.querySelector<HTMLTextAreaElement>("#plan-input")!.value).toBe("1|0|0|SCAN t");
+    expect(root.querySelector("#output-content .tree")).not.toBeNull();
+    expect(parsePlan).toHaveBeenCalledWith("sqlite", "1|0|0|SCAN t");
+  });
+
+  it("mounts normally with no stored plan (nothing to restore)", async () => {
+    const { output } = await setup();
+    expect(output.querySelector(".output-placeholder")).not.toBeNull();
+    expect(parsePlan).not.toHaveBeenCalled();
+  });
+
+  it("the Clear button removes the stored plan and resets the UI", async () => {
+    const { root, textarea, button, output, jumpButton } = await setup();
+    textarea.value = "Seq Scan on users (cost=0.00..1.00 rows=1 width=4)";
+    parsePlan.mockReturnValue({ node_type: "Seq Scan", relation: "users", children: [] });
+    button.click();
+    await flush();
+
+    const { loadStoredPlan } = await import("./storage");
+    expect(loadStoredPlan()).not.toBeNull();
+
+    root.querySelector<HTMLButtonElement>("#clear-saved-btn")!.click();
+
+    expect(loadStoredPlan()).toBeNull();
+    expect(textarea.value).toBe("");
+    expect(output.querySelector(".tree")).toBeNull();
+    expect(output.querySelector(".output-placeholder")).not.toBeNull();
+    expect(jumpButton.hidden).toBe(true);
+  });
+
+  it("persists collapse state when a node is toggled", async () => {
+    const { textarea, button, output } = await setup();
+    textarea.value = "irrelevant";
+    parsePlan.mockReturnValue({
+      node_type: "Root",
+      children: [{ node_type: "Child", children: [] }],
+    });
+    button.click();
+    await flush();
+
+    output.querySelector<HTMLButtonElement>(".tree-toggle")!.click();
+
+    const { loadStoredPlan } = await import("./storage");
+    expect(loadStoredPlan()?.collapsedPaths).toEqual([""]);
   });
 });
