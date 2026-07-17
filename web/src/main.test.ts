@@ -259,6 +259,24 @@ describe("renderApp", () => {
     expect(jumpButton.hidden).toBe(true);
   });
 
+  it("renders the result of the latest click when Visualize is double-clicked with changing input", async () => {
+    const { textarea, button, output } = await setup();
+
+    textarea.value = "first plan text";
+    parsePlan.mockReturnValueOnce({ node_type: "First", children: [] });
+    button.click();
+
+    textarea.value = "second plan text";
+    parsePlan.mockReturnValueOnce({ node_type: "Second", children: [] });
+    button.click();
+
+    await flush();
+
+    expect(parsePlan).toHaveBeenNthCalledWith(1, "postgres", "first plan text");
+    expect(parsePlan).toHaveBeenNthCalledWith(2, "postgres", "second plan text");
+    expect(output.querySelector(".tree-label")?.textContent).toBe("Second");
+  });
+
   it("persists collapse state when a node is toggled", async () => {
     const { textarea, button, output } = await setup();
     textarea.value = "irrelevant";
