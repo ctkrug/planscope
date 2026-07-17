@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeNodeFields,
   findHottestNode,
+  findHottestNodePath,
   isRowEstimateMismatch,
+  pathKey,
   selfTimeMs,
   type PlanNode,
 } from "./plan";
@@ -103,5 +106,82 @@ describe("isRowEstimateMismatch", () => {
     expect(
       isRowEstimateMismatch(node({ estimated_rows: 0, actual_rows: 0 })),
     ).toBe(false);
+  });
+});
+
+describe("findHottestNodePath", () => {
+  it("returns undefined when no node has ANALYZE data", () => {
+    expect(findHottestNodePath(node({ children: [node({})] }))).toBeUndefined();
+  });
+
+  it("returns an empty path when the root itself is hottest", () => {
+    expect(findHottestNodePath(node({ actual_time_total_ms: 5 }))).toEqual([]);
+  });
+
+  it("finds the path to the hottest node several levels deep", () => {
+    const hot = node({ node_type: "Seq Scan on b", actual_time_total_ms: 90 });
+    const root = node({
+      actual_time_total_ms: 100,
+      children: [
+        node({ actual_time_total_ms: 2 }),
+        node({
+          actual_time_total_ms: 95,
+          children: [node({ actual_time_total_ms: 1 }), hot],
+        }),
+      ],
+    });
+    expect(findHottestNodePath(root)).toEqual([1, 1]);
+  });
+});
+
+describe("pathKey", () => {
+  it("joins a path into a dotted string", () => {
+    expect(pathKey([0, 1, 2])).toBe("0.1.2");
+  });
+
+  it("encodes the root path as an empty string", () => {
+    expect(pathKey([])).toBe("");
+  });
+});
+
+describe("describeNodeFields", () => {
+  it("always includes node_type and a children count", () => {
+    expect(describeNodeFields(node({ node_type: "Hash" }))).toEqual([
+      { label: "Node type", value: "Hash" },
+      { label: "Children", value: "0" },
+    ]);
+  });
+
+  it("includes every present field, formatted for display", () => {
+    const fields = describeNodeFields(
+      node({
+        node_type: "Seq Scan",
+        relation: "users",
+        estimated_cost_start: 0,
+        estimated_cost_total: 35.5,
+        estimated_rows: 2550,
+        actual_time_start_ms: 0.01,
+        actual_time_total_ms: 0.41,
+        actual_rows: 2550,
+        actual_loops: 1,
+      }),
+    );
+    expect(fields).toEqual([
+      { label: "Node type", value: "Seq Scan" },
+      { label: "Relation", value: "users" },
+      { label: "Estimated cost (start)", value: "0" },
+      { label: "Estimated cost (total)", value: "35.5" },
+      { label: "Estimated rows", value: "2,550" },
+      { label: "Actual time (start)", value: "0.01 ms" },
+      { label: "Actual time (total)", value: "0.41 ms" },
+      { label: "Actual rows", value: "2,550" },
+      { label: "Actual loops", value: "1" },
+      { label: "Children", value: "0" },
+    ]);
+  });
+
+  it("omits absent fields rather than showing a placeholder", () => {
+    const fields = describeNodeFields(node({ node_type: "Hash", estimated_rows: 10 }));
+    expect(fields.map((f) => f.label)).toEqual(["Node type", "Estimated rows", "Children"]);
   });
 });
