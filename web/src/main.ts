@@ -5,6 +5,7 @@ import { ensureParserReady, parsePlan } from "./parser";
 import { renderTree, type TreeController } from "./tree-view";
 import { createInspector } from "./inspector";
 import { findHottestNodePath } from "./plan";
+import { clearStoredPlan, loadStoredPlan, saveStoredPlan } from "./storage";
 
 const ENGINES: Engine[] = ["postgres", "mysql", "sqlite"];
 
@@ -42,6 +43,9 @@ export function renderApp(root: HTMLElement): void {
                 `<button type="button" class="ghost-btn example-btn" data-engine="${e}">${engineLabel(e)}</button>`,
             ).join("")}
           </div>
+          <button id="clear-saved-btn" class="ghost-btn" type="button">
+            Clear saved plan
+          </button>
         </div>
       </aside>
       <section class="output-panel" aria-label="Cost tree">
@@ -112,7 +116,7 @@ export function renderApp(root: HTMLElement): void {
     errorEl.textContent = "";
   }
 
-  function visualize(engine: Engine, text: string): void {
+  function visualize(engine: Engine, text: string, initialCollapsedPaths: string[] = []): void {
     const trimmed = text.trim();
     if (!trimmed) {
       showError("Paste a plan first.");
@@ -122,12 +126,25 @@ export function renderApp(root: HTMLElement): void {
     clearError();
     showPlaceholder(`Parsing as ${engineLabel(engine)}…`, false);
 
+    const collapsedPaths = new Set(initialCollapsedPaths);
+    const persist = (): void =>
+      saveStoredPlan({ engine, text: trimmed, collapsedPaths: Array.from(collapsedPaths) });
+
     ensureParserReady()
       .then(() => {
         const plan = parsePlan(engine, trimmed);
         output.innerHTML = "";
         const controller: TreeController = renderTree(plan, {
+          collapsedPaths,
           onNodeSelect: (node, _key, rowEl) => inspector.open(node, rowEl),
+          onToggle: (key, collapsed) => {
+            if (collapsed) {
+              collapsedPaths.add(key);
+            } else {
+              collapsedPaths.delete(key);
+            }
+            persist();
+          },
         });
         output.appendChild(controller.element);
         setRailCollapsed(true);
@@ -140,6 +157,8 @@ export function renderApp(root: HTMLElement): void {
         } else {
           hideJumpButton();
         }
+
+        persist();
       })
       .catch((cause: unknown) => {
         const message = cause instanceof Error ? cause.message : String(cause);
@@ -163,6 +182,23 @@ export function renderApp(root: HTMLElement): void {
       visualize(engine, text);
     });
   });
+
+  const clearSavedButton = root.querySelector<HTMLButtonElement>("#clear-saved-btn")!;
+  clearSavedButton.addEventListener("click", () => {
+    clearStoredPlan();
+    input.value = "";
+    clearError();
+    showPlaceholder("Paste a plan and click Visualize to see the cost tree.", false);
+    hideJumpButton();
+    setRailCollapsed(false);
+  });
+
+  const stored = loadStoredPlan();
+  if (stored) {
+    select.value = stored.engine;
+    input.value = stored.text;
+    visualize(stored.engine, stored.text, stored.collapsedPaths);
+  }
 }
 
 const root = document.getElementById("app");
