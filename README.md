@@ -15,19 +15,28 @@ Paste a gnarly 40-line `EXPLAIN ANALYZE` dump and it collapses into a clean inde
 under a second, with the node responsible for the majority of the runtime highlighted before
 you've gone looking for it.
 
-## Planned features
+## Features
 
-- **Multi-engine parsing** — a real parser (not regex) for Postgres `EXPLAIN (ANALYZE, FORMAT
-  TEXT)` / `FORMAT JSON`, MySQL `EXPLAIN FORMAT=JSON`, and SQLite `EXPLAIN QUERY PLAN`, all
-  normalized into one plan-tree model.
-- **Cost hotspot highlighting** — the node(s) responsible for the bulk of actual runtime (or
-  estimated cost, when `ANALYZE` wasn't used) are flagged automatically.
-- **Row estimate vs. actual** — mis-estimated row counts (planner expected N, got M) are called
-  out inline, since that's usually the root cause of a bad plan.
-- **Interactive tree** — collapse/expand subtrees, jump to the hottest node, and inspect a
-  node's raw plan fields on click.
+- **Multi-engine parsing** — a real parser (not regex) for Postgres `EXPLAIN (ANALYZE)` text
+  output, MySQL `EXPLAIN FORMAT=JSON`, and SQLite `EXPLAIN QUERY PLAN`, all normalized into one
+  plan-tree model.
+- **Cost hotspot highlighting** — the node responsible for the bulk of actual runtime (by
+  self-time, not inclusive total) is flagged automatically, with a one-click "jump to hottest
+  node" that expands whatever's collapsed in the way.
+- **Row estimate vs. actual** — mis-estimated row counts (planner expected N, got M, off by
+  >10x) are called out inline, since that's usually the root cause of a bad plan.
+- **Interactive tree** — collapse/expand any subtree, click a node to inspect every raw plan
+  field, and try a canned example per engine without a live database.
+- **Persistence** — the last-pasted plan (text, engine, and expand/collapse state) survives a
+  reload via `localStorage`; a "Clear saved plan" button resets it.
 - **Runs entirely client-side** — the parser compiles to WebAssembly and runs in the browser;
   no query plan text ever leaves your machine.
+
+## Planned features
+
+- Postgres `EXPLAIN (FORMAT JSON)` support, auto-detected alongside the existing text format.
+- A landing site (`site/`) sharing the app's design system.
+- A full accessibility pass (contrast, keyboard-only operation) beyond what's already wired up.
 
 ## Stack
 
@@ -40,10 +49,11 @@ you've gone looking for it.
 
 ## Status
 
-The core loop works end to end: paste a Postgres, MySQL, or SQLite plan, click Visualize, and
-get a collapsible cost tree with the hottest node and row-estimate mismatches called out. See
-[`docs/VISION.md`](docs/VISION.md) for the full design and [`docs/BACKLOG.md`](docs/BACKLOG.md)
-for what's left.
+The core loop works end to end: paste a Postgres, MySQL, or SQLite plan (or click a per-engine
+example), and get a collapsible cost tree with the hottest node and row-estimate mismatches
+called out, a "jump to hottest node" shortcut, click-to-inspect on any node, and the plan
+persisted across reloads. See [`docs/VISION.md`](docs/VISION.md) for the full design and
+[`docs/BACKLOG.md`](docs/BACKLOG.md) for what's left.
 
 ## Development
 
