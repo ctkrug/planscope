@@ -107,6 +107,24 @@ describe("isRowEstimateMismatch", () => {
       isRowEstimateMismatch(node({ estimated_rows: 0, actual_rows: 0 })),
     ).toBe(false);
   });
+
+  it("is true exactly at the 10x threshold in either direction (inclusive boundary)", () => {
+    expect(
+      isRowEstimateMismatch(node({ estimated_rows: 10, actual_rows: 100 })),
+    ).toBe(true);
+    expect(
+      isRowEstimateMismatch(node({ estimated_rows: 100, actual_rows: 10 })),
+    ).toBe(true);
+  });
+
+  it("is false just inside the 10x threshold in either direction", () => {
+    expect(
+      isRowEstimateMismatch(node({ estimated_rows: 10, actual_rows: 99 })),
+    ).toBe(false);
+    expect(
+      isRowEstimateMismatch(node({ estimated_rows: 100, actual_rows: 11 })),
+    ).toBe(false);
+  });
 });
 
 describe("findHottestNodePath", () => {
