@@ -86,6 +86,56 @@ impl Drop for PlanNode {
     }
 }
 
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        // self_time_ms is a duration derived from measured totals - it must
+        // never go negative, regardless of how children's times relate to
+        // the parent's (a hand-edited or malformed ANALYZE paste could have
+        // children summing to more than their parent's total).
+        #[test]
+        fn self_time_ms_is_never_negative(
+            total in 0.0f64..1_000_000.0,
+            child_totals in proptest::collection::vec(0.0f64..1_000_000.0, 0..8),
+        ) {
+            let mut node = PlanNode::new("Node");
+            node.actual_time_total_ms = Some(total);
+            node.children = child_totals
+                .into_iter()
+                .map(|t| {
+                    let mut c = PlanNode::new("Child");
+                    c.actual_time_total_ms = Some(t);
+                    c
+                })
+                .collect();
+
+            let self_time = node.self_time_ms().expect("total was set");
+            prop_assert!(self_time >= 0.0);
+        }
+
+        // When children fit inside the parent's measured total (the normal
+        // case), self time is exactly the remainder, not just clamped.
+        #[test]
+        fn self_time_ms_is_exact_when_children_fit(
+            children_total in 0.0f64..500.0,
+            extra in 0.0f64..500.0,
+        ) {
+            let total = children_total + extra;
+            let mut node = PlanNode::new("Node");
+            node.actual_time_total_ms = Some(total);
+            let mut child = PlanNode::new("Child");
+            child.actual_time_total_ms = Some(children_total);
+            node.children = vec![child];
+
+            let self_time = node.self_time_ms().expect("total was set");
+            prop_assert!((self_time - extra).abs() < 1e-9);
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParseError {
     pub message: String,
