@@ -181,4 +181,13 @@ Hash Join  (cost=1.11..2.22 rows=10 width=8) (actual time=0.50..1.20 rows=10 loo
         assert_eq!(plan.estimated_cost_total, Some(1.0));
         assert_eq!(plan.estimated_rows, None);
     }
+
+    proptest::proptest! {
+        // No arbitrary string - however garbled - should ever panic the
+        // parser; it must always resolve to Ok or a ParseError.
+        #[test]
+        fn never_panics_on_arbitrary_input(text in ".{0,500}") {
+            let _ = parse(&text);
+        }
+    }
 }
