@@ -113,6 +113,16 @@ describe("renderTree", () => {
       expect(onNodeSelect).toHaveBeenCalledTimes(2);
     });
 
+    it("ignores keys other than Enter and Space", () => {
+      const onNodeSelect = vi.fn();
+      const { element } = renderTree(node({}), { onNodeSelect });
+      const row = element.querySelector<HTMLElement>(".tree-row")!;
+
+      row.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+
+      expect(onNodeSelect).not.toHaveBeenCalled();
+    });
+
     it("clicking a toggle does not also fire onNodeSelect", () => {
       const onNodeSelect = vi.fn();
       const { element } = renderTree(
