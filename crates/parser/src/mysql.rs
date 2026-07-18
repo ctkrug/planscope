@@ -135,4 +135,34 @@ mod tests {
         let plan = parse(r#"{"query_block": {"select_id": 1}}"#).unwrap();
         assert_eq!(plan.node_type, "Unknown");
     }
+
+    #[test]
+    fn rejects_pathologically_deep_nesting_instead_of_overflowing_the_stack() {
+        // node_from_block recurses through nested_loop/grouping_operation/
+        // ordering_operation wrappers, so a maliciously (or corruptly) deep
+        // paste could threaten the stack. serde_json's own deserializer
+        // enforces a recursion limit (128 by default) well before our walk
+        // would - this pins that guarantee down as a regression test.
+        let depth = 1000;
+        let mut json = String::from(r#"{"query_block": "#);
+        for _ in 0..depth {
+            json.push_str(r#"{"grouping_operation": "#);
+        }
+        json.push_str(r#"{"table": {"table_name": "t", "access_type": "ALL"}}"#);
+        for _ in 0..depth {
+            json.push('}');
+        }
+        json.push('}');
+
+        assert!(parse(&json).is_err());
+    }
+
+    proptest::proptest! {
+        // No arbitrary string - however garbled - should ever panic the
+        // parser; it must always resolve to Ok or a ParseError.
+        #[test]
+        fn never_panics_on_arbitrary_input(text in ".{0,500}") {
+            let _ = parse(&text);
+        }
+    }
 }
