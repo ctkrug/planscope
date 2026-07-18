@@ -227,4 +227,13 @@ mod tests {
         // unresolvable rather than silently dropped or looped over.
         assert!(parse("5|5|0|SCAN t1").is_err());
     }
+
+    proptest::proptest! {
+        // No arbitrary string - however garbled - should ever panic the
+        // parser; it must always resolve to Ok or a ParseError.
+        #[test]
+        fn never_panics_on_arbitrary_input(text in ".{0,500}") {
+            let _ = parse(&text);
+        }
+    }
 }
