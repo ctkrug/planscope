@@ -15,6 +15,8 @@ Paste a gnarly 40-line `EXPLAIN ANALYZE` dump and it collapses into a clean inde
 under a second, with the node responsible for the majority of the runtime highlighted before
 you've gone looking for it.
 
+![Planscope rendering a Postgres hash join, with the seq-scan responsible for the runtime highlighted in red and a row-estimate mismatch badge in blue](docs/screenshot.png)
+
 ## Features
 
 - **Multi-engine parsing** — a real parser (not regex) for Postgres `EXPLAIN (ANALYZE)` text
