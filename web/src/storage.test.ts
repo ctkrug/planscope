@@ -52,6 +52,14 @@ describe("storage", () => {
     expect(loadStoredPlan()).toBeNull();
   });
 
+  it("drops non-string entries from a hand-edited collapsedPaths array", () => {
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({ engine: "sqlite", text: "x", collapsedPaths: ["0", 1, null, "0.2", {}] }),
+    );
+    expect(loadStoredPlan()).toEqual({ engine: "sqlite", text: "x", collapsedPaths: ["0", "0.2"] });
+  });
+
   it("clearing when nothing is stored is a safe no-op", () => {
     expect(() => clearStoredPlan()).not.toThrow();
   });
