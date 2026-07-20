@@ -14,6 +14,7 @@
     "test": "vitest run",
     "pretest:coverage": "npm run build:wasm",
     "test:coverage": "vitest run --coverage",
+    "prelint": "npm run build:wasm",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
