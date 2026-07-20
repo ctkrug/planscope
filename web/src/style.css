@@ -387,10 +387,10 @@ button:focus-visible {
 }
 
 .tree-toggle {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  min-height: 22px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -414,8 +414,8 @@ button:focus-visible {
 }
 
 .tree-toggle-spacer {
-  width: 22px;
-  min-width: 22px;
+  width: 44px;
+  min-width: 44px;
 }
 
 .tree-label {
