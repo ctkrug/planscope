@@ -162,6 +162,7 @@ body {
   .workspace {
     grid-template-columns: 320px 1fr;
     align-items: stretch;
+    align-content: stretch;
     min-height: calc(100vh - 108px);
   }
 }
