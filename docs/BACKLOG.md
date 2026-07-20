@@ -1,4 +1,4 @@
-# Planscope — backlog
+# Planflare: backlog
 
 Epic/story breakdown for the build. Every story has 1–3 verifiable acceptance criteria — concrete
 checks, not vibes. Story 1 is the wow moment: it ships before anything optional.
