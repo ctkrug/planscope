@@ -34,3 +34,21 @@ Hash Join  (cost=1.11..2.22 rows=10 width=8) (actual time=0.50..10.00 rows=10 lo
 
     assert_eq!(plan.self_time_ms(), Some(3.0));
 }
+
+#[test]
+fn postgres_json_matches_the_equivalent_text_plan() {
+    let text = parse(
+        Engine::Postgres,
+        "\
+Hash Join  (cost=1.00..10.00 rows=10 width=8) (actual time=0.50..9.00 rows=8 loops=1)
+  ->  Seq Scan on users  (cost=0.00..4.00 rows=2 width=4) (actual time=0.10..7.00 rows=200 loops=1)",
+    )
+    .unwrap();
+    let json = parse(
+        Engine::Postgres,
+        r#"[{"Plan":{"Node Type":"Hash Join","Startup Cost":1.00,"Total Cost":10.00,"Plan Rows":10,"Actual Startup Time":0.50,"Actual Total Time":9.00,"Actual Rows":8,"Actual Loops":1,"Plans":[{"Node Type":"Seq Scan","Relation Name":"users","Startup Cost":0.00,"Total Cost":4.00,"Plan Rows":2,"Actual Startup Time":0.10,"Actual Total Time":7.00,"Actual Rows":200,"Actual Loops":1}]}}]"#,
+    )
+    .unwrap();
+
+    assert_eq!(json, text);
+}
