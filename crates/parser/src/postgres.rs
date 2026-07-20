@@ -45,7 +45,9 @@ fn parse_text(text: &str) -> Result<PlanNode, ParseError> {
             continue;
         };
 
-        let node = parse_node_line(body);
+        let Some(node) = parse_node_line(body) else {
+            continue;
+        };
 
         while stack.len() > 1 && stack.last().unwrap().0 >= indent {
             let (_, finished) = stack.pop().unwrap();
@@ -125,9 +127,13 @@ fn json_u64(value: &Value, key: &str) -> Option<u64> {
     value.get(key).and_then(Value::as_u64)
 }
 
-fn parse_node_line(body: &str) -> PlanNode {
+fn parse_node_line(body: &str) -> Option<PlanNode> {
     let head_end = body.find('(').unwrap_or(body.len());
     let head = body[..head_end].trim();
+
+    if !looks_like_plan_node(head, body) {
+        return None;
+    }
 
     let (node_type, relation) = match head.find(" on ") {
         Some(pos) => (
@@ -157,7 +163,60 @@ fn parse_node_line(body: &str) -> PlanNode {
         node.actual_loops = extract_field(actual_group, "loops=").and_then(|s| s.parse().ok());
     }
 
-    node
+    Some(node)
+}
+
+fn looks_like_plan_node(head: &str, body: &str) -> bool {
+    const NODE_PREFIXES: &[&str] = &[
+        "Aggregate",
+        "Append",
+        "Bitmap",
+        "CTE",
+        "Custom",
+        "Delete",
+        "Foreign",
+        "Function",
+        "Gather",
+        "Group",
+        "GroupAggregate",
+        "Hash",
+        "HashAggregate",
+        "Incremental",
+        "Index",
+        "Insert",
+        "Limit",
+        "LockRows",
+        "Materialize",
+        "Memoize",
+        "Merge",
+        "ModifyTable",
+        "Nested",
+        "Parallel",
+        "ProjectSet",
+        "Recursive",
+        "Result",
+        "Sample",
+        "Seq",
+        "SetOp",
+        "Sort",
+        "Subquery",
+        "Table",
+        "Tid",
+        "Unique",
+        "Update",
+        "Values",
+        "WindowAgg",
+        "WorkTable",
+    ];
+
+    body.contains("(cost=")
+        || body.contains("(actual ")
+        || NODE_PREFIXES.iter().any(|prefix| {
+            head == *prefix
+                || head
+                    .strip_prefix(prefix)
+                    .is_some_and(|suffix| suffix.starts_with(' '))
+        })
 }
 
 /// Returns the contents between `(` and the next `)`, starting at `open_marker`.
@@ -225,6 +284,20 @@ Hash Join  (cost=1.11..2.22 rows=10 width=8) (actual time=0.50..1.20 rows=10 loo
     fn rejects_empty_and_whitespace_only_input() {
         assert!(parse("").is_err());
         assert!(parse("   \n\t  \n   ").is_err());
+    }
+
+    #[test]
+    fn rejects_plain_text_that_is_not_a_plan() {
+        let error = parse("garbage from a copied terminal buffer").unwrap_err();
+        assert_eq!(error.message, "no plan lines found");
+    }
+
+    #[test]
+    fn parses_costs_off_output_inside_psql_table_framing() {
+        let plan =
+            parse("QUERY PLAN\n-------------------------\nSeq Scan on users\n(1 row)").unwrap();
+        assert_eq!(plan.node_type, "Seq Scan");
+        assert_eq!(plan.relation.as_deref(), Some("users"));
     }
 
     #[test]
