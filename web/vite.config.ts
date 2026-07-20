@@ -5,7 +5,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "./",
   build: {
-    outDir: "dist",
+    // `site/` is the publishable artifact. Keeping the generated app there
+    // makes the portfolio URL open the visualizer instead of an intermediate
+    // landing page.
+    outDir: "../site",
+    emptyOutDir: true,
   },
   test: {
     environment: "jsdom",
