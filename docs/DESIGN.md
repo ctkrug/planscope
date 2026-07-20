@@ -1,8 +1,8 @@
-# Planscope — design direction
+# Planflare: design direction
 
 ## 1. Aesthetic direction
 
-**Swiss-grid modernist.** Planscope reads like a technical diagnostic instrument, not a SaaS
+**Swiss-grid modernist.** Planflare reads like a technical diagnostic instrument, not a SaaS
 dashboard: a stark, light grid, thin black rules, boxy geometric type, and exactly one loud
 color — signal red — reserved entirely for the node burning your runtime. Structure and
 restraint are the personality; the red only shows up where it means something.
@@ -43,7 +43,7 @@ horizontal scroll for deep nesting rather than illegible shrinking text.
 
 ## 4. Signature detail
 
-On parse, the wordmark's "scope" gets a **1px red rule that sweeps left-to-right underneath it**
+On parse, the wordmark's "flare" gets a **1px red rule that sweeps left-to-right underneath it**
 in ~400ms, then the tree's hottest node's highlight animates in with the same sweep — the same
 motion that "reveals" the wordmark is the motion that reveals the answer. One flourish, reused
 with intent instead of two separate gimmicks.
