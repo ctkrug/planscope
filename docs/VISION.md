@@ -1,4 +1,4 @@
-# Planscope — vision
+# Planflare: vision
 
 ## The problem
 
@@ -13,8 +13,8 @@ workers, `Buffers:` lines interleaved with node lines).
 
 ## Who it's for
 
-Backend engineers and DBAs who already know what an EXPLAIN plan *is* but don't want to
-eyeball-parse 40 lines of nested cost annotations to find the one seq-scan that's killing them.
+Backend developers who already know what an EXPLAIN plan *is* but don't want to eyeball-parse
+40 lines of nested cost annotations to find the one sequential scan slowing an application.
 Not a beginner-education tool - a faster path to the same conclusion an expert would eventually
 reach by hand.
 
