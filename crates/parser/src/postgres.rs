@@ -182,6 +182,57 @@ Hash Join  (cost=1.11..2.22 rows=10 width=8) (actual time=0.50..1.20 rows=10 loo
         assert_eq!(plan.estimated_rows, None);
     }
 
+    #[test]
+    fn parses_json_format_output_into_the_normalized_tree() {
+        let plan = parse(
+            r#"[
+              {
+                "Plan": {
+                  "Node Type": "Hash Join",
+                  "Startup Cost": 20.0,
+                  "Total Cost": 60.0,
+                  "Plan Rows": 12,
+                  "Actual Startup Time": 0.5,
+                  "Actual Total Time": 9.5,
+                  "Actual Rows": 10,
+                  "Actual Loops": 1,
+                  "Plans": [
+                    {
+                      "Node Type": "Seq Scan",
+                      "Relation Name": "users",
+                      "Startup Cost": 0.0,
+                      "Total Cost": 30.0,
+                      "Plan Rows": 2,
+                      "Actual Startup Time": 0.1,
+                      "Actual Total Time": 8.0,
+                      "Actual Rows": 200,
+                      "Actual Loops": 1
+                    }
+                  ]
+                }
+              }
+            ]"#,
+        )
+        .unwrap();
+
+        assert_eq!(plan.node_type, "Hash Join");
+        assert_eq!(plan.estimated_cost_start, Some(20.0));
+        assert_eq!(plan.estimated_cost_total, Some(60.0));
+        assert_eq!(plan.estimated_rows, Some(12));
+        assert_eq!(plan.actual_time_total_ms, Some(9.5));
+        assert_eq!(plan.actual_rows, Some(10));
+        assert_eq!(plan.actual_loops, Some(1));
+        assert_eq!(plan.children.len(), 1);
+        assert_eq!(plan.children[0].node_type, "Seq Scan");
+        assert_eq!(plan.children[0].relation.as_deref(), Some("users"));
+    }
+
+    #[test]
+    fn rejects_malformed_json_when_the_input_starts_like_json() {
+        let error = parse("[not valid JSON").unwrap_err();
+        assert!(error.message.contains("invalid Postgres EXPLAIN JSON"));
+    }
+
     proptest::proptest! {
         // No arbitrary string - however garbled - should ever panic the
         // parser; it must always resolve to Ok or a ParseError.
