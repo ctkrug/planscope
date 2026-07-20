@@ -7,8 +7,17 @@
 //! indent level, closing nodes out as shallower lines arrive.
 
 use crate::model::{ParseError, PlanNode};
+use serde_json::Value;
 
 pub fn parse(text: &str) -> Result<PlanNode, ParseError> {
+    if matches!(text.trim_start().as_bytes().first(), Some(b'[' | b'{')) {
+        return parse_json(text);
+    }
+
+    parse_text(text)
+}
+
+fn parse_text(text: &str) -> Result<PlanNode, ParseError> {
     let mut stack: Vec<(usize, PlanNode)> = Vec::new();
 
     for raw_line in text.lines() {
@@ -53,6 +62,67 @@ pub fn parse(text: &str) -> Result<PlanNode, ParseError> {
         stack.last_mut().unwrap().1.children.push(finished);
     }
     Ok(stack.pop().unwrap().1)
+}
+
+/// Parses PostgreSQL's `EXPLAIN (FORMAT JSON)` envelope. PostgreSQL emits an
+/// array with one object containing `Plan`; accepting the inner object too is
+/// useful for copied plan fragments and keeps auto-detection format-agnostic.
+fn parse_json(text: &str) -> Result<PlanNode, ParseError> {
+    let value: Value = serde_json::from_str(text)
+        .map_err(|error| ParseError::new(format!("invalid Postgres EXPLAIN JSON: {error}")))?;
+
+    let plan = match &value {
+        Value::Array(items) => items
+            .first()
+            .and_then(|item| item.get("Plan"))
+            .ok_or_else(|| ParseError::new("missing \"Plan\" in Postgres EXPLAIN JSON"))?,
+        Value::Object(_) => value.get("Plan").unwrap_or(&value),
+        _ => {
+            return Err(ParseError::new(
+                "Postgres EXPLAIN JSON must be an object or array",
+            ))
+        }
+    };
+
+    node_from_json(plan)
+}
+
+fn node_from_json(value: &Value) -> Result<PlanNode, ParseError> {
+    let node_type = value
+        .get("Node Type")
+        .and_then(Value::as_str)
+        .ok_or_else(|| ParseError::new("missing \"Node Type\" in Postgres EXPLAIN JSON node"))?;
+    let mut node = PlanNode::new(node_type);
+    node.relation = value
+        .get("Relation Name")
+        .and_then(Value::as_str)
+        .map(String::from);
+    node.estimated_cost_start = json_number(value, "Startup Cost");
+    node.estimated_cost_total = json_number(value, "Total Cost");
+    node.estimated_rows = json_u64(value, "Plan Rows");
+    node.actual_time_start_ms = json_number(value, "Actual Startup Time");
+    node.actual_time_total_ms = json_number(value, "Actual Total Time");
+    node.actual_rows = json_u64(value, "Actual Rows");
+    node.actual_loops = json_u64(value, "Actual Loops");
+
+    if let Some(children) = value.get("Plans") {
+        let children = children.as_array().ok_or_else(|| {
+            ParseError::new("\"Plans\" must be an array in Postgres EXPLAIN JSON")
+        })?;
+        node.children = children
+            .iter()
+            .map(node_from_json)
+            .collect::<Result<Vec<_>, _>>()?;
+    }
+    Ok(node)
+}
+
+fn json_number(value: &Value, key: &str) -> Option<f64> {
+    value.get(key).and_then(Value::as_f64)
+}
+
+fn json_u64(value: &Value, key: &str) -> Option<u64> {
+    value.get(key).and_then(Value::as_u64)
 }
 
 fn parse_node_line(body: &str) -> PlanNode {
