@@ -10,7 +10,6 @@ web/src/wasm/
 
 # Node / web
 web/node_modules/
-web/dist/
 web/.vite/
 web/coverage/
 npm-debug.log*
@@ -32,4 +31,3 @@ Thumbs.db
 
 # Logs
 *.log
-site/dist/
